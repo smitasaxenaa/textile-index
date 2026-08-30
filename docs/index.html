@@ -17,21 +17,37 @@
   html,body{margin:0;height:100%;}
   body{background:var(--bg);color:var(--text);
        font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
-  header{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-         padding:12px 16px;border-bottom:1px solid var(--border);}
+  header,.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+         padding:9px 16px;border-bottom:1px solid var(--border);}
   h1{font-size:15px;margin:0;letter-spacing:.5px;}
   .meta{color:var(--muted);font-size:12.5px;}
   .group{display:flex;gap:4px;background:var(--btn);padding:3px;border-radius:8px;}
   .group.push{margin-left:auto;}
-  button{all:unset;cursor:pointer;padding:5px 11px;border-radius:6px;
+  button{all:unset;cursor:pointer;padding:5px 10px;border-radius:6px;
          color:var(--muted);font-size:13px;font-weight:600;}
   button.active{background:var(--btnActive);color:#fff;}
   .solo{background:var(--btn);}
-  #price{height:60vh;}
-  #breadth{height:20vh;border-top:1px solid var(--border);}
-  .foot{padding:7px 16px;border-top:1px solid var(--border);
-        color:var(--muted);font-size:12px;}
-  /* constituents modal */
+  .ind{display:flex;align-items:center;gap:4px;background:var(--btn);
+       padding:3px 6px;border-radius:8px;}
+  .ind label{color:var(--muted);font-size:12px;font-weight:600;}
+  .ind input{all:unset;width:34px;text-align:center;background:var(--bg);
+             border:1px solid var(--border);border-radius:5px;padding:3px;
+             color:var(--text);font-size:12px;}
+  .ind .add{color:var(--btnActive);}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;}
+  .schip{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;
+         background:var(--btn);border:1px solid var(--border);border-radius:6px;padding:3px 7px;}
+  .schip .dot{width:8px;height:8px;border-radius:50%;}
+  .schip .x{cursor:pointer;color:var(--muted);font-weight:700;}
+  #priceWrap{position:relative;}
+  #price{height:58vh;}
+  #draw{position:absolute;inset:0;pointer-events:none;}
+  #breadth{height:22vh;border-top:1px solid var(--border);}
+  #rsi{height:0;display:none;border-top:1px solid var(--border);}
+  body.has-rsi #price{height:44vh;}
+  body.has-rsi #breadth{height:15vh;}
+  body.has-rsi #rsi{height:15vh;display:block;}
+  .foot{padding:7px 16px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
            align-items:center;justify-content:center;z-index:50;}
   .overlay.show{display:flex;}
@@ -39,7 +55,7 @@
          max-width:640px;width:90%;max-height:80vh;overflow:auto;padding:18px 20px;}
   .modal h2{margin:0 0 4px;font-size:15px;}
   .modal .sub{color:var(--muted);font-size:12.5px;margin-bottom:14px;}
-  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .modal .chips2{display:flex;flex-wrap:wrap;gap:6px;}
   .chip{background:var(--btn);border:1px solid var(--border);border-radius:6px;
         padding:4px 8px;font-size:12.5px;font-weight:600;}
   .chip.drop{opacity:.6;text-decoration:line-through;}
@@ -50,34 +66,53 @@
 <header>
   <h1>TEXINDEX</h1>
   <span class="meta" id="meta">loading…</span>
-
   <div class="group" id="tf">
     <button data-tf="1h">1H</button>
     <button data-tf="1D" class="active">1D</button>
     <button data-tf="1W">1W</button>
     <button data-tf="1M">1M</button>
   </div>
-
   <div class="group" id="wt">
     <button data-wt="capmcap" class="active">Market cap</button>
     <button data-wt="equal">Equal</button>
   </div>
-
-  <button class="solo" id="drawBtn">✎ Trendline</button>
-  <button class="solo" id="clearBtn">Clear</button>
-  <button class="solo" id="listBtn">Constituents</button>
-
   <div class="group push" id="th">
     <button data-th="dark" class="active">Dark</button>
     <button data-th="light">Light</button>
   </div>
 </header>
 
-<div id="price"></div>
+<div class="tools">
+  <div class="group" id="tool">
+    <button data-tool="cursor" class="active">Cursor</button>
+    <button data-tool="trend">Trendline</button>
+    <button data-tool="rect">Rectangle</button>
+  </div>
+  <button class="solo" id="clearBtn">Clear drawings</button>
+
+  <div class="ind">
+    <label>EMA</label><input id="emaP" type="number" min="1" value="20">
+    <button class="add" id="emaAdd">+ Add</button>
+  </div>
+  <div class="ind">
+    <label>RSI</label><input id="rsiP" type="number" min="2" value="14">
+    <button class="add" id="rsiAdd">+ Add</button>
+  </div>
+  <div class="chips" id="studyChips"></div>
+
+  <button class="solo push" id="listBtn">Constituents</button>
+</div>
+
+<div id="priceWrap">
+  <div id="price"></div>
+  <canvas id="draw"></canvas>
+</div>
 <div id="breadth"></div>
-<div class="foot" id="foot">
-  Candles = index level · lower pane = <b>market breadth</b> (% of the constituents trading
-  above their own 50-day average — <i>not</i> RSI). Close is exact; 1H/1D wicks approximate, 1W/1M wicks exact.
+<div id="rsi"></div>
+
+<div class="foot">
+  Candles = index level · breadth pane = % of constituents above their 50-DMA (not RSI) ·
+  Trendline/Rectangle: click two points (preview follows the cursor), right-click a shape to delete it.
 </div>
 
 <div class="overlay" id="overlay">
@@ -85,145 +120,233 @@
     <span class="close" id="modalClose">✕</span>
     <h2>Constituents</h2>
     <div class="sub" id="modalSub"></div>
-    <div class="chips" id="chips"></div>
+    <div class="chips2" id="modalChips"></div>
   </div>
 </div>
 
 <script>
 const { createChart, CrosshairMode } = LightweightCharts;
-let DATA = null;
-const state = { tf:"1D", wt:"capmcap", th:"dark" };
+let DATA=null, CURR=[];
+const state={ tf:"1D", wt:"capmcap", th:"dark" };
+const PALETTE={ dark:{bg:"#0e1116",text:"#8b95a3",grid:"#181e27",border:"#222833"},
+                light:{bg:"#ffffff",text:"#5a6472",grid:"#eef1f6",border:"#e3e7ee"} };
+function opts(){ const p=PALETTE[state.th]; return {
+  autoSize:true,
+  layout:{background:{color:p.bg},textColor:p.text},
+  grid:{vertLines:{color:p.grid},horzLines:{color:p.grid}},
+  rightPriceScale:{borderColor:p.border},
+  timeScale:{borderColor:p.border,timeVisible:(state.tf==="1h"),secondsVisible:false},
+  crosshair:{mode:CrosshairMode.Normal} }; }
 
-const PALETTE = {
-  dark:  { bg:"#0e1116", text:"#8b95a3", grid:"#181e27", border:"#222833" },
-  light: { bg:"#ffffff", text:"#5a6472", grid:"#eef1f6", border:"#e3e7ee" },
-};
-function opts(){
-  const p = PALETTE[state.th];
-  return {
-    layout:{ background:{color:p.bg}, textColor:p.text },
-    grid:{ vertLines:{color:p.grid}, horzLines:{color:p.grid} },
-    rightPriceScale:{ borderColor:p.border },
-    timeScale:{ borderColor:p.border, timeVisible:(state.tf==="1h"), secondsVisible:false },
-    crosshair:{ mode:CrosshairMode.Normal },
-  };
-}
+const priceEl=document.getElementById("price");
+const priceChart=createChart(priceEl,opts());
+const candle=priceChart.addCandlestickSeries({upColor:"#26a69a",downColor:"#ef5350",
+  borderVisible:false,wickUpColor:"#26a69a",wickDownColor:"#ef5350"});
+const breadthChart=createChart(document.getElementById("breadth"),opts());
+const breadthLine=breadthChart.addLineSeries({color:"#c39bd6",lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+const breadthGuide=breadthChart.addLineSeries({color:"#7a8394",lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
+const rsiChart=createChart(document.getElementById("rsi"),opts());
+let rsiGuideHi=null, rsiGuideLo=null;
 
-const priceEl = document.getElementById("price");
-const priceChart = createChart(priceEl, opts());
-const candle = priceChart.addCandlestickSeries({
-  upColor:"#26a69a", downColor:"#ef5350", borderVisible:false,
-  wickUpColor:"#26a69a", wickDownColor:"#ef5350",
-});
-const breadthChart = createChart(document.getElementById("breadth"), opts());
-const breadthLine = breadthChart.addLineSeries({ color:"#c39bd6", lineWidth:2, priceLineVisible:false, lastValueVisible:false });
-const guide = breadthChart.addLineSeries({ color:"#7a8394", lineWidth:1, lineStyle:2, priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
-
-const linkize = (a,b)=>a.timeScale().subscribeVisibleLogicalRangeChange(r=>r&&b.timeScale().setVisibleLogicalRange(r));
-linkize(priceChart, breadthChart); linkize(breadthChart, priceChart);
+/* ---- sync the panes' time axes ---- */
+const charts=[priceChart,breadthChart,rsiChart];
+let syncing=false;
+charts.forEach(c=>c.timeScale().subscribeVisibleLogicalRangeChange(r=>{
+  if(r && !syncing){ syncing=true; charts.forEach(o=>{ if(o!==c) o.timeScale().setVisibleLogicalRange(r); }); syncing=false; }
+  if(c===priceChart) redraw();
+}));
+priceChart.subscribeCrosshairMove(()=>redraw());
 
 function applyTheme(){
-  document.body.classList.toggle("light", state.th==="light");
-  priceChart.applyOptions(opts());
-  breadthChart.applyOptions(opts());
+  document.body.classList.toggle("light",state.th==="light");
+  charts.forEach(c=>c.applyOptions(opts()));
 }
 
-function render(){
-  if(!DATA) return;
-  const bars = DATA.data[state.wt][state.tf] || [];
-  candle.setData(bars.map(b=>({time:b.t, open:b.o, high:b.h, low:b.l, close:b.c})));
+/* ================= indicators ================= */
+const EMA_COLORS=["#4aa3ff","#f5a623","#2ecc71","#e056fd","#ff7675","#00cec9","#fd79a8"];
+const RSI_COLORS=["#c39bd6","#4aa3ff","#f5a623","#2ecc71"];
+let studies=[], sid=0;
 
-  const hasBreadth = bars.length && bars[0].br50 !== undefined;
-  document.getElementById("breadth").style.display = hasBreadth ? "block" : "none";
-  if(hasBreadth){
-    const bl = bars.filter(b=>b.br50!=null).map(b=>({time:b.t, value:b.br50}));
-    breadthLine.setData(bl);
-    guide.setData(bl.map(d=>({time:d.time, value:50})));
+function ema(vals,period){
+  const out=new Array(vals.length).fill(null); let acc=0;
+  for(let i=0;i<vals.length;i++){
+    if(i<period){ acc+=vals[i]; if(i===period-1) out[i]=acc/period; continue; }
+    const k=2/(period+1); out[i]=vals[i]*k+out[i-1]*(1-k);
+  } return out;
+}
+function rsi(vals,period){
+  const out=new Array(vals.length).fill(null);
+  if(vals.length<=period) return out;
+  let g=0,l=0;
+  for(let i=1;i<=period;i++){ const ch=vals[i]-vals[i-1]; g+=Math.max(ch,0); l+=Math.max(-ch,0); }
+  g/=period; l/=period; out[period]= l===0?100:100-100/(1+g/l);
+  for(let i=period+1;i<vals.length;i++){
+    const ch=vals[i]-vals[i-1];
+    g=(g*(period-1)+Math.max(ch,0))/period; l=(l*(period-1)+Math.max(-ch,0))/period;
+    out[i]= l===0?100:100-100/(1+g/l);
+  } return out;
+}
+function computeStudy(st){
+  const closes=CURR.map(b=>b.c), times=CURR.map(b=>b.t);
+  const series = st.kind==="ema"?ema(closes,st.period):rsi(closes,st.period);
+  const data=[];
+  for(let i=0;i<series.length;i++) if(series[i]!=null) data.push({time:times[i],value:+series[i].toFixed(2)});
+  st.series.setData(data);
+}
+function refreshRsiPaneAndGuides(){
+  const hasRsi=studies.some(s=>s.kind==="rsi");
+  document.body.classList.toggle("has-rsi",hasRsi);
+  if(hasRsi){
+    const times=CURR.map(b=>b.t);
+    if(!rsiGuideHi){ rsiGuideHi=rsiChart.addLineSeries({color:"#3a4250",lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
+                     rsiGuideLo=rsiChart.addLineSeries({color:"#3a4250",lineWidth:1,lineStyle:2,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false}); }
+    rsiGuideHi.setData(times.map(t=>({time:t,value:70})));
+    rsiGuideLo.setData(times.map(t=>({time:t,value:30})));
+    const r=priceChart.timeScale().getVisibleLogicalRange(); if(r) rsiChart.timeScale().setVisibleLogicalRange(r);
   }
-
-  const last = bars[bars.length-1] || {};
-  const chg = last.o ? (((last.c-last.o)/last.o)*100).toFixed(2) : "0.00";
-  document.getElementById("meta").textContent =
-    `${DATA.constituents_used.length} stocks · ${state.wt==="capmcap"?"market-cap":"equal"} weighted · `+
-    `${state.tf} · last ${last.c ?? "–"} (${chg>=0?"+":""}${chg}%) · updated ${DATA.generated_utc}`;
-  priceChart.timeScale().fitContent();
 }
-
-/* ---- toggles ---- */
-function wire(id, key){
-  document.getElementById(id).addEventListener("click", e=>{
-    const b = e.target.closest("button"); if(!b) return;
-    state[key] = b.dataset[key];
-    [...b.parentNode.children].forEach(x=>x.classList.toggle("active", x===b));
-    if(key==="th") applyTheme();
-    if(key==="tf" || key==="wt") clearTrendlines();  // times differ across views
-    render();
+function addStudy(kind,period){
+  period=Math.max(kind==="rsi"?2:1, parseInt(period)||(kind==="rsi"?14:20));
+  const colors=kind==="ema"?EMA_COLORS:RSI_COLORS;
+  const used=studies.filter(s=>s.kind===kind).length;
+  const color=colors[used%colors.length];
+  const chart=kind==="ema"?priceChart:rsiChart;
+  const series=chart.addLineSeries({color,lineWidth:2,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
+  const st={id:++sid,kind,period,color,series};
+  studies.push(st);
+  refreshRsiPaneAndGuides();
+  computeStudy(st);
+  renderChips();
+}
+function removeStudy(id){
+  const i=studies.findIndex(s=>s.id===id); if(i<0) return;
+  const st=studies[i]; (st.kind==="ema"?priceChart:rsiChart).removeSeries(st.series);
+  studies.splice(i,1);
+  if(!studies.some(s=>s.kind==="rsi") && rsiGuideHi){ rsiChart.removeSeries(rsiGuideHi); rsiChart.removeSeries(rsiGuideLo); rsiGuideHi=rsiGuideLo=null; }
+  refreshRsiPaneAndGuides(); renderChips();
+}
+function renderChips(){
+  const box=document.getElementById("studyChips"); box.innerHTML="";
+  studies.forEach(st=>{
+    const c=document.createElement("span"); c.className="schip";
+    c.innerHTML=`<span class="dot" style="background:${st.color}"></span>${st.kind.toUpperCase()} ${st.period}<span class="x">✕</span>`;
+    c.querySelector(".x").onclick=()=>removeStudy(st.id);
+    box.appendChild(c);
   });
 }
-wire("tf","tf"); wire("wt","wt"); wire("th","th");
+function recomputeStudies(){ refreshRsiPaneAndGuides(); studies.forEach(computeStudy); }
 
-/* ---- trendline drawing ---- */
-let drawMode = false;
-let pending = null;
-const trendlines = [];
-const drawBtn = document.getElementById("drawBtn");
+document.getElementById("emaAdd").onclick=()=>addStudy("ema",document.getElementById("emaP").value);
+document.getElementById("rsiAdd").onclick=()=>addStudy("rsi",document.getElementById("rsiP").value);
 
-drawBtn.addEventListener("click", ()=>{
-  drawMode = !drawMode;
-  drawBtn.classList.toggle("active", drawMode);
-  pending = null;
-  priceEl.style.cursor = drawMode ? "crosshair" : "default";
-  priceChart.applyOptions({ handleScroll:!drawMode, handleScale:!drawMode });
-});
-document.getElementById("clearBtn").addEventListener("click", clearTrendlines);
-
-function clearTrendlines(){
-  while(trendlines.length){ priceChart.removeSeries(trendlines.pop()); }
-  pending = null;
+/* ================= render ================= */
+function render(){
+  if(!DATA) return;
+  CURR=DATA.data[state.wt][state.tf]||[];
+  candle.setData(CURR.map(b=>({time:b.t,open:b.o,high:b.h,low:b.l,close:b.c})));
+  const hasBr=CURR.length && CURR[0].br50!==undefined;
+  document.getElementById("breadth").style.display=hasBr?"block":"none";
+  if(hasBr){ const bl=CURR.filter(b=>b.br50!=null).map(b=>({time:b.t,value:b.br50}));
+    breadthLine.setData(bl); breadthGuide.setData(bl.map(d=>({time:d.time,value:50}))); }
+  recomputeStudies();
+  const last=CURR[CURR.length-1]||{};
+  const chg=last.o?(((last.c-last.o)/last.o)*100).toFixed(2):"0.00";
+  document.getElementById("meta").textContent=
+    `${DATA.constituents_used.length} stocks · ${state.wt==="capmcap"?"market-cap":"equal"} weighted · ${state.tf} · last ${last.c??"–"} (${chg>=0?"+":""}${chg}%) · updated ${DATA.generated_utc}`;
+  priceChart.timeScale().fitContent();
+  redraw();
 }
 
-priceChart.subscribeClick(param=>{
-  if(!drawMode || !param.point) return;
-  let time = param.time;
-  if(time == null) time = priceChart.timeScale().coordinateToTime(param.point.x);
-  const price = candle.coordinateToPrice(param.point.y);
-  if(time == null || price == null) return;
-  if(!pending){
-    pending = { time, price };
-  } else {
-    const line = priceChart.addLineSeries({ color:"#f5c542", lineWidth:2,
-      priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
-    const pts = [pending, {time, price}]
-      .sort((a,b)=> (a.time>b.time?1:(a.time<b.time?-1:0)))
-      .map(p=>({time:p.time, value:p.price}));
-    line.setData(pts);
-    trendlines.push(line);
-    pending = null;
+/* ================= drawing layer ================= */
+const canvas=document.getElementById("draw"), ctx=canvas.getContext("2d");
+let tool="cursor", draft=null; const drawings=[];
+function resizeCanvas(){
+  const dpr=window.devicePixelRatio||1, w=priceEl.clientWidth, h=priceEl.clientHeight;
+  canvas.width=w*dpr; canvas.height=h*dpr; canvas.style.width=w+"px"; canvas.style.height=h+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0); redraw();
+}
+new ResizeObserver(resizeCanvas).observe(priceEl);
+const xOf=l=>priceChart.timeScale().logicalToCoordinate(l);
+const yOf=p=>candle.priceToCoordinate(p);
+function pointFromEvent(e){
+  const r=canvas.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+  const logical=priceChart.timeScale().coordinateToLogical(x), price=candle.coordinateToPrice(y);
+  return (logical==null||price==null)?null:{logical,price};
+}
+function drawShape(d,isDraft){
+  const x1=xOf(d.a.logical),y1=yOf(d.a.price),x2=xOf(d.b.logical),y2=yOf(d.b.price);
+  if([x1,y1,x2,y2].some(v=>v==null)) return;
+  ctx.lineWidth=1.8;
+  if(d.type==="trend"){ ctx.strokeStyle=isDraft?"rgba(245,197,66,.9)":"#f5c542";
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
+  else{ const x=Math.min(x1,x2),y=Math.min(y1,y2),w=Math.abs(x2-x1),h=Math.abs(y2-y1);
+    ctx.fillStyle="rgba(42,104,216,.12)"; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle=isDraft?"rgba(42,104,216,.9)":"#2a68d8"; ctx.strokeRect(x,y,w,h); }
+}
+function redraw(){ ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawings.forEach(d=>drawShape(d,false)); if(draft) drawShape(draft,true); }
+function setTool(t){
+  tool=t; draft=null; const active=t!=="cursor";
+  canvas.style.pointerEvents=active?"auto":"none";
+  canvas.style.cursor=active?"crosshair":"default";
+  priceChart.applyOptions({handleScroll:!active,handleScale:!active});
+  [...document.getElementById("tool").children].forEach(b=>b.classList.toggle("active",b.dataset.tool===t));
+  redraw();
+}
+canvas.addEventListener("mousedown",e=>{
+  if(tool==="cursor"||e.button!==0) return;
+  const p=pointFromEvent(e); if(!p) return;
+  if(!draft){ draft={type:tool,a:p,b:p}; }
+  else{ draft.b=p; drawings.push(draft); draft=null; setTool("cursor"); }
+  redraw();
+});
+canvas.addEventListener("mousemove",e=>{ if(!draft) return; const p=pointFromEvent(e); if(p){ draft.b=p; redraw(); } });
+function distToSeg(px,py,x1,y1,x2,y2){
+  const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy;
+  let t=l2?((px-x1)*dx+(py-y1)*dy)/l2:0; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+}
+document.getElementById("priceWrap").addEventListener("contextmenu",e=>{
+  e.preventDefault();
+  const r=canvas.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+  for(let i=drawings.length-1;i>=0;i--){
+    const d=drawings[i], x1=xOf(d.a.logical),y1=yOf(d.a.price),x2=xOf(d.b.logical),y2=yOf(d.b.price);
+    if([x1,y1,x2,y2].some(v=>v==null)) continue;
+    let hit=false;
+    if(d.type==="trend") hit=distToSeg(x,y,x1,y1,x2,y2)<7;
+    else{ const L=Math.min(x1,x2),R=Math.max(x1,x2),T=Math.min(y1,y2),B=Math.max(y1,y2);
+      const near=(x>L-7&&x<R+7&&y>T-7&&y<B+7)&&(Math.abs(x-L)<7||Math.abs(x-R)<7||Math.abs(y-T)<7||Math.abs(y-B)<7); hit=near; }
+    if(hit){ drawings.splice(i,1); redraw(); return; }
   }
 });
+[...document.getElementById("tool").children].forEach(b=>b.addEventListener("click",()=>setTool(b.dataset.tool)));
+document.getElementById("clearBtn").onclick=()=>{ drawings.length=0; draft=null; redraw(); };
 
-/* ---- constituents modal ---- */
-const overlay = document.getElementById("overlay");
-document.getElementById("listBtn").addEventListener("click", ()=>{
-  if(!DATA) return;
-  const chips = document.getElementById("chips");
-  const used = DATA.constituents_used || [];
-  const drop = DATA.constituents_dropped || [];
-  document.getElementById("modalSub").textContent =
-    `${used.length} in the index` + (drop.length ? ` · ${drop.length} dropped (bad symbol / no data)` : "");
-  chips.innerHTML = "";
-  used.forEach(s=>{ const c=document.createElement("span"); c.className="chip"; c.textContent=s; chips.appendChild(c); });
-  drop.forEach(s=>{ const c=document.createElement("span"); c.className="chip drop"; c.textContent=s; chips.appendChild(c); });
+/* ================= toggles + modal ================= */
+function wire(id,key){ document.getElementById(id).addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  state[key]=b.dataset[key];
+  [...b.parentNode.children].forEach(x=>x.classList.toggle("active",x===b));
+  if(key==="th") applyTheme();
+  if(key==="tf"||key==="wt"){ drawings.length=0; draft=null; }  // bars differ across views
+  render();
+}); }
+wire("tf","tf"); wire("wt","wt"); wire("th","th");
+
+const overlay=document.getElementById("overlay");
+document.getElementById("listBtn").onclick=()=>{ if(!DATA) return;
+  const used=DATA.constituents_used||[], drop=DATA.constituents_dropped||[];
+  document.getElementById("modalSub").textContent=`${used.length} in the index`+(drop.length?` · ${drop.length} dropped (no data on feed)`:"");
+  const box=document.getElementById("modalChips"); box.innerHTML="";
+  used.forEach(s=>{const c=document.createElement("span");c.className="chip";c.textContent=s;box.appendChild(c);});
+  drop.forEach(s=>{const c=document.createElement("span");c.className="chip drop";c.textContent=s;box.appendChild(c);});
   overlay.classList.add("show");
-});
-document.getElementById("modalClose").addEventListener("click", ()=>overlay.classList.remove("show"));
-overlay.addEventListener("click", e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+};
+document.getElementById("modalClose").onclick=()=>overlay.classList.remove("show");
+overlay.addEventListener("click",e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
 
-addEventListener("resize", ()=>priceChart.timeScale().fitContent());
-
-fetch("data/textile_index.json?"+Date.now())
-  .then(r=>r.json())
-  .then(j=>{ DATA=j; render(); })
+fetch("data/textile_index.json?"+Date.now()).then(r=>r.json())
+  .then(j=>{ DATA=j; resizeCanvas(); render(); })
   .catch(()=>{ document.getElementById("meta").textContent="Could not load data/textile_index.json — run build_index.py or wait for the daily action."; });
 </script>
 </body>
