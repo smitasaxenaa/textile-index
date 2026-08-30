@@ -263,12 +263,35 @@ def main():
             good.append(s)
         else:
             dropped.append(disp.get(s, s))
+    # Retry dropped tickers one-by-one — bulk downloads sometimes return a few
+    # empty due to Yahoo throttling; individual fetches usually recover them.
     if dropped:
-        print("  ! Skipped (fix or remove in TICKERS): " + ", ".join(sorted(dropped)))
+        print(f"  Retrying {len(dropped)} dropped ticker(s) individually...")
+        still_dropped = []
+        for name in list(dropped):
+            s = name + ".NS"
+            try:
+                r = yf.download(s, period=DAILY_LOOKBACK, interval="1d",
+                                auto_adjust=True, progress=False)
+                if not r.empty and r["Close"].notna().sum() >= MIN_ROWS:
+                    for f in ("Open", "High", "Low", "Close"):
+                        col = r[f]
+                        d[f][s] = col.iloc[:, 0] if hasattr(col, "columns") else col
+                    good.append(s)
+                    print(f"    recovered {name}")
+                else:
+                    still_dropped.append(name)
+            except Exception:
+                still_dropped.append(name)
+        dropped = still_dropped
+
+    if dropped:
+        print("  ! Still skipped (genuinely no data): " + ", ".join(sorted(dropped)))
     if not good:
         sys.exit("No usable tickers.")
     print(f"  {len(good)} constituents usable.")
 
+    good = [s for s in yf_symbols if s in good]  # keep original order
     for k in d:
         d[k] = d[k][good]
 
