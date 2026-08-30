@@ -284,7 +284,7 @@ def main():
     payload = {}
     for weighting in ("capmcap", "equal"):
         print(f"Building '{weighting}' ...")
-        daily = build_basket_ohlc(d["Open"], d["High"], d["Low"], d["Close"],
+        daily = build_basket_ohlc(d["Close"], d["Open"], d["High"], d["Low"],
                                   shares, weighting, WEIGHT_CAP, BASE_VALUE)
         ret_panel = d["Close"].pct_change()
         br20, br50, adv, dec = daily_extras(d["Close"], ret_panel)
@@ -298,7 +298,7 @@ def main():
             "1M": period_records(monthly, breadth_daily=br50),
         }
         if h is not None:
-            hourly = build_basket_ohlc(h["Open"], h["High"], h["Low"], h["Close"],
+            hourly = build_basket_ohlc(h["Close"], h["Open"], h["High"], h["Low"],
                                        shares, weighting, WEIGHT_CAP, BASE_VALUE)
             tf["1h"] = hourly_records(hourly)
         payload[weighting] = tf
