@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TEXINDEX — custom NSE textile index</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#0e1116; --text:#d7dde5; --muted:#8b95a3;
+    --border:#222833; --grid:#181e27; --btn:#161c26; --btnActive:#2a68d8;
+  }
+  body.light{
+    --bg:#ffffff; --panel:#ffffff; --text:#1c2330; --muted:#5a6472;
+    --border:#e3e7ee; --grid:#eef1f6; --btn:#f1f4f9; --btnActive:#2a68d8;
+  }
+  html,body{margin:0;height:100%;}
+  body{background:var(--bg);color:var(--text);
+       font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;}
+  header{display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+         padding:12px 16px;border-bottom:1px solid var(--border);}
+  h1{font-size:15px;margin:0;letter-spacing:.5px;}
+  .meta{color:var(--muted);font-size:12.5px;}
+  .group{display:flex;gap:4px;background:var(--btn);padding:3px;border-radius:8px;}
+  .group.push{margin-left:auto;}
+  button{all:unset;cursor:pointer;padding:5px 11px;border-radius:6px;
+         color:var(--muted);font-size:13px;font-weight:600;}
+  button.active{background:var(--btnActive);color:#fff;}
+  #price{height:60vh;}
+  #breadth{height:20vh;border-top:1px solid var(--border);}
+  .foot{padding:7px 16px;border-top:1px solid var(--border);
+        color:var(--muted);font-size:12px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>TEXINDEX</h1>
+  <span class="meta" id="meta">loading…</span>
+
+  <div class="group" id="tf">
+    <button data-tf="1h">1H</button>
+    <button data-tf="1D" class="active">1D</button>
+    <button data-tf="1W">1W</button>
+    <button data-tf="1M">1M</button>
+  </div>
+
+  <div class="group" id="wt">
+    <button data-wt="capmcap" class="active">Market cap</button>
+    <button data-wt="equal">Equal</button>
+  </div>
+
+  <div class="group push" id="th">
+    <button data-th="dark" class="active">Dark</button>
+    <button data-th="light">Light</button>
+  </div>
+</header>
+
+<div id="price"></div>
+<div id="breadth"></div>
+<div class="foot" id="foot">
+  Candles = index level · lower pane = % of constituents above their 50-DMA ·
+  ▽ = big-move bar. Close is exact; 1H/1D wicks are approximate, 1W/1M wicks are exact.
+</div>
+
+<script>
+const { createChart, CrosshairMode } = LightweightCharts;
+let DATA = null;
+const state = { tf: "1D", wt: "capmcap", th: "dark" };
+
+const PALETTE = {
+  dark:  { bg:"#0e1116", text:"#8b95a3", grid:"#181e27", border:"#222833" },
+  light: { bg:"#ffffff", text:"#5a6472", grid:"#eef1f6", border:"#e3e7ee" },
+};
+
+function opts(){
+  const p = PALETTE[state.th];
+  return {
+    layout:{ background:{color:p.bg}, textColor:p.text },
+    grid:{ vertLines:{color:p.grid}, horzLines:{color:p.grid} },
+    rightPriceScale:{ borderColor:p.border },
+    timeScale:{ borderColor:p.border, timeVisible:(state.tf==="1h"), secondsVisible:false },
+    crosshair:{ mode:CrosshairMode.Normal },
+  };
+}
+
+const priceChart = createChart(document.getElementById("price"), opts());
+const candle = priceChart.addCandlestickSeries({
+  upColor:"#26a69a", downColor:"#ef5350", borderVisible:false,
+  wickUpColor:"#26a69a", wickDownColor:"#ef5350",
+});
+const breadthChart = createChart(document.getElementById("breadth"), opts());
+const breadthLine = breadthChart.addLineSeries({ color:"#c39bd6", lineWidth:2, priceLineVisible:false });
+const guide = breadthChart.addLineSeries({ color:"#7a8394", lineWidth:1, lineStyle:2, priceLineVisible:false });
+
+// keep the two time axes in sync
+const linkize = (a,b)=>a.timeScale().subscribeVisibleLogicalRangeChange(r=>r&&b.timeScale().setVisibleLogicalRange(r));
+linkize(priceChart, breadthChart); linkize(breadthChart, priceChart);
+
+function applyTheme(){
+  document.body.classList.toggle("light", state.th==="light");
+  priceChart.applyOptions(opts());
+  breadthChart.applyOptions(opts());
+}
+
+function render(){
+  if(!DATA) return;
+  const bars = DATA.data[state.wt][state.tf] || [];
+  candle.setData(bars.map(b=>({time:b.t, open:b.o, high:b.h, low:b.l, close:b.c})));
+  candle.setMarkers(bars.filter(b=>b.big===1).map(b=>({
+    time:b.t, position:"aboveBar", color:"#f5c542", shape:"arrowDown"
+  })));
+
+  const hasBreadth = bars.length && bars[0].br50 !== undefined;
+  document.getElementById("breadth").style.display = hasBreadth ? "block" : "none";
+  if(hasBreadth){
+    const bl = bars.filter(b=>b.br50!=null).map(b=>({time:b.t, value:b.br50}));
+    breadthLine.setData(bl);
+    guide.setData(bl.map(d=>({time:d.time, value:50})));
+  }
+
+  const last = bars[bars.length-1] || {};
+  const chg = last.o ? (((last.c-last.o)/last.o)*100).toFixed(2) : "0.00";
+  document.getElementById("meta").textContent =
+    `${DATA.constituents_used.length} stocks · ${state.wt==="capmcap"?"market-cap":"equal"} weighted · `+
+    `${state.tf} · last ${last.c ?? "–"} (${chg>=0?"+":""}${chg}%) · updated ${DATA.generated_utc}`;
+  priceChart.timeScale().fitContent();
+}
+
+// button wiring
+function wire(id, key){
+  document.getElementById(id).addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    state[key] = b.dataset[key];
+    [...b.parentNode.children].forEach(x=>x.classList.toggle("active", x===b));
+    if(key==="th") applyTheme();
+    render();
+  });
+}
+wire("tf","tf"); wire("wt","wt"); wire("th","th");
+
+addEventListener("resize", ()=>{ priceChart.timeScale().fitContent(); });
+
+fetch("data/textile_index.json?"+Date.now())
+  .then(r=>r.json())
+  .then(j=>{ DATA=j; render(); })
+  .catch(()=>{ document.getElementById("meta").textContent="Could not load data/textile_index.json — run build_index.py or wait for the daily action."; });
+</script>
+</body>
+</html>
